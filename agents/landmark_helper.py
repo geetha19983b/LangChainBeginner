@@ -5,8 +5,11 @@ import streamlit as st
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain.agents import create_agent
-from langchain_community.agent_toolkits.load_tools import load_tools
+from langchain_community.tools import WikipediaQueryRun, DuckDuckGoSearchRun
+from langchain_community.utilities import WikipediaAPIWrapper, DuckDuckGoSearchAPIWrapper
 from langchain_core.globals import set_debug
+from dotenv import load_dotenv
+import httpx
 
 set_debug(True)
 
@@ -21,8 +24,17 @@ def encode_image(image_file):
 # ------------------------------
 # 2. LLM setup (gpt-4o for vision + tools)
 # ------------------------------
+load_dotenv()
+http_client = httpx.Client(verify=False)
+
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-llm = ChatOpenAI(model="gpt-4o", api_key=OPENAI_API_KEY)
+llm = ChatOpenAI(
+    model="openai/gpt-4.1", 
+    api_key=OPENAI_API_KEY, 
+    base_url="https://models.github.ai/inference",
+    http_client=http_client,
+    temperature=0
+)
 
 
 # ------------------------------
@@ -54,7 +66,10 @@ vision_chain = vision_prompt | llm
 # ------------------------------
 # 4. Tools (Wikipedia + DuckDuckGo)
 # ------------------------------
-tools = load_tools(["wikipedia", "ddg-search"])
+wikipedia_tool = WikipediaQueryRun(api_wrapper=WikipediaAPIWrapper())
+ddg_tool = DuckDuckGoSearchRun(api_wrapper=DuckDuckGoSearchAPIWrapper())
+
+tools = [wikipedia_tool, ddg_tool]
 
 
 # ------------------------------
