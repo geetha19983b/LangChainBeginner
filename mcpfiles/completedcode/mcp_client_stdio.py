@@ -1,4 +1,7 @@
 import asyncio
+import os
+
+import httpx
 import streamlit as st
 
 from langchain_openai import ChatOpenAI
@@ -16,7 +19,16 @@ client = MultiServerMCPClient({
 
 tools = asyncio.run(client.get_tools())
 
-llm = ChatOpenAI(model="gpt-4o")
+openai_key = os.getenv("OPENAI_API_KEY")
+http_client = httpx.Client(verify=False)
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+llm = ChatOpenAI(
+    model="openai/gpt-4.1", 
+    api_key=OPENAI_API_KEY, 
+    base_url="https://models.github.ai/inference",
+    http_client=http_client,
+    temperature=0
+)
 agent = create_agent(llm, tools)
 
 st.title("AI Agent (MCP Version)")

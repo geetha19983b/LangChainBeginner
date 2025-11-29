@@ -1,0 +1,1 @@
+Get-Content test_requests.txt | python mcp_server.py

@@ -6,6 +6,7 @@ mcp = FastMCP(name="Tool Server")
 
 @mcp.tool()
 def wikipedia_search(query: str) -> str:
+    """Search Wikipedia for information"""
     try:
         return wikipedia.summary(query, sentences=2)
     except Exception as e:
@@ -13,13 +14,13 @@ def wikipedia_search(query: str) -> str:
 
 @mcp.tool()
 def ddg_search(query: str) -> str:
+    """Search DuckDuckGo for information"""
     try:
         with DDGS() as ddgs:
             results = ddgs.text(query, max_results=3)
             return "\n".join([r["body"] for r in results])
     except Exception as e:
         return f"Error: {str(e)}"
-
 
 if __name__ == "__main__":
     mcp.run(transport="stdio")
