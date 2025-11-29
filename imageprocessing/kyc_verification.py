@@ -3,12 +3,19 @@ from langchain_core.prompts import ChatPromptTemplate
 import base64
 import os
 import streamlit as st
+from dotenv import load_dotenv
+import httpx
 
 def encode_image(image_file):
     return base64.b64encode(image_file.read()).decode()
 
+load_dotenv()
+http_client = httpx.Client(verify=False)
+
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-llm = ChatOpenAI(model="gpt-4o", api_key=OPENAI_API_KEY)
+llm=ChatOpenAI(model="openai/gpt-4.1", api_key=OPENAI_API_KEY, 
+               base_url="https://models.github.ai/inference",
+               http_client=http_client)
 
 prompt = ChatPromptTemplate.from_messages(
     [

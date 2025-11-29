@@ -1,4 +1,5 @@
 import os
+import httpx
 from langchain_openai import OpenAIEmbeddings,ChatOpenAI
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -8,9 +9,18 @@ from langchain_classic.chains import create_retrieval_chain
 from langchain_classic.chains.combine_documents import create_stuff_documents_chain
 
 
+from dotenv import load_dotenv
+
+load_dotenv()
+http_client = httpx.Client(verify=False)
+
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-embeddings=OpenAIEmbeddings(api_key=OPENAI_API_KEY)
-llm=ChatOpenAI(model="gpt-4o", api_key=OPENAI_API_KEY)
+embeddings=OpenAIEmbeddings(api_key=OPENAI_API_KEY,model="openai/text-embedding-3-small",
+    base_url="https://models.github.ai/inference",
+    http_client=http_client)
+llm=ChatOpenAI(model="openai/gpt-4.1", api_key=OPENAI_API_KEY, 
+               base_url="https://models.github.ai/inference",
+               http_client=http_client)
 
 document = PyPDFLoader("academic_research_data.pdf").load()
 text_splitter= RecursiveCharacterTextSplitter(chunk_size=1000,

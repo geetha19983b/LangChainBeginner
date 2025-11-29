@@ -1,4 +1,5 @@
 import os
+import httpx
 import streamlit as st
 
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
@@ -20,11 +21,19 @@ from langchain_core.runnables.history import RunnableWithMessageHistory
 # -----------------------------
 # OpenAI setup
 # -----------------------------
+
+from dotenv import load_dotenv
+
+load_dotenv()
+http_client = httpx.Client(verify=False)
+
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-
-embeddings = OpenAIEmbeddings(api_key=OPENAI_API_KEY)
-llm = ChatOpenAI(model="gpt-4o", api_key=OPENAI_API_KEY)
-
+embeddings=OpenAIEmbeddings(api_key=OPENAI_API_KEY,model="openai/text-embedding-3-small",
+    base_url="https://models.github.ai/inference",
+    http_client=http_client)
+llm=ChatOpenAI(model="openai/gpt-4.1", api_key=OPENAI_API_KEY, 
+               base_url="https://models.github.ai/inference",
+               http_client=http_client)
 
 # -----------------------------
 # Load & split documents

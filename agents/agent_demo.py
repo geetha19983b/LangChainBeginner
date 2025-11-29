@@ -1,72 +1,66 @@
 import os
 import streamlit as st
-
 from langchain_openai import ChatOpenAI
+from langchain_community.tools import WikipediaQueryRun, DuckDuckGoSearchRun
+from langchain_community.utilities import WikipediaAPIWrapper, DuckDuckGoSearchAPIWrapper
+#from langgraph.prebuilt import create_react_agent
 from langchain.agents import create_agent
-from langchain_community.agent_toolkits.load_tools import load_tools
-from langchain_core.globals import set_debug
-
-set_debug(True)
-
-
+from dotenv import load_dotenv
+import httpx
 
 # ------------------------------
 # 1. LLM setup
 # ------------------------------
+load_dotenv()
+http_client = httpx.Client(verify=False)
+
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 llm = ChatOpenAI(
-    model="gpt-4o-mini",
-    api_key=OPENAI_API_KEY,
+    model="openai/gpt-4.1", 
+    api_key=OPENAI_API_KEY, 
+    base_url="https://models.github.ai/inference",
+    http_client=http_client,
+    temperature=0
 )
-
 
 # ------------------------------
 # 2. Tools (Wikipedia + DuckDuckGo)
 # ------------------------------
-tools = load_tools(["wikipedia","ddg-search"])
+wikipedia_tool = WikipediaQueryRun(api_wrapper=WikipediaAPIWrapper())
+ddg_tool = DuckDuckGoSearchRun(api_wrapper=DuckDuckGoSearchAPIWrapper())
 
-
-# ------------------------------
-# 3. ReAct-style system prompt
-# ------------------------------
-react_system_prompt = """
-You are a ReAct-style AI agent.
-
-Follow this loop carefully:
-1. THOUGHT: Think step by step about what to do next.
-2. ACTION: When needed, call one of the tools (wikipedia, ddg-search).
-3. OBSERVATION: Read the tool result and decide the next step.
-
-Repeat THOUGHT → ACTION → OBSERVATION
-until you are ready to give the final answer.
-
-When you are confident, stop using tools and respond with a clear, concise final answer to the user.
-"""
-
+tools = [wikipedia_tool, ddg_tool]
 
 # ------------------------------
-# 4. Create Agent (new v1 API)
+# 3. Create Agent with LangGraph
 # ------------------------------
-
-#TODO: Create Agent
-agent = create_agent(
-    model=llm,
-    tools = tools,
-    system_prompt=react_system_prompt
-)
+agent_executor = create_agent(llm, tools)
 
 # ------------------------------
-# 5. Streamlit UI
+# 4. Streamlit UI
 # ------------------------------
-st.title("AI Agent (ReAct style – LangChain v1)")
+st.title("🤖 AI Agent (ReAct style)")
 
-task = st.text_input("Assign me a task")
+task = st.text_input("Assign me a task", placeholder="e.g., What is the capital of France?")
 
 if task:
-    result = agent.invoke(
-        {
-            "messages":[{"role":"user","content":task}]
-        }
-    )
-    final_msg = result["messages"][-1]
-    st.write(final_msg.content)
+    with st.spinner("Agent is thinking..."):
+        try:
+            # Invoke the agent
+            result = agent_executor.invoke({"messages": [("user", task)]})
+            
+            # Extract the final answer
+            final_message = result["messages"][-1]
+            
+            st.success("✅ Task completed!")
+            st.write("**Answer:**")
+            st.write(final_message.content)
+            
+            # Optional: Show the reasoning steps
+            with st.expander("🔍 See Agent's Reasoning Steps"):
+                for msg in result["messages"]:
+                    st.write(f"**{msg.type}:** {msg.content}")
+                    
+        except Exception as e:
+            st.error(f"An error occurred: {str(e)}")
+            st.exception(e)
